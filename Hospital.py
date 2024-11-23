@@ -7,6 +7,7 @@ import random
 
 ONE = 1
 ZERO = 0
+HALF = 0.5
 
 
 class Hospital:
@@ -44,4 +45,24 @@ class Hospital:
         patient.total_time = self.env.now - arrival_time
         self.departed_patients += ONE
 
+    def patient_arrival(self, time_between_patients, service_times_ranges):
+        while True:
+            yield self.env.timeout(random.expovariate(ONE/time_between_patients))
 
+            illness = random.choice(["normal","dangereous"])
+
+            service_times = {
+                "preparation": random.uniform(*service_times_ranges["preparation"]),
+                "surgery": random.uniform(*service_times_ranges["surgery"]),
+                "recovery": random.uniform(*service_times_ranges["recovery"])
+            }
+
+            if illness == "normal":
+                service_times["preparation"] = service_times["preparation"] * HALF
+                service_times["surgery"] = service_times["surgery"] * HALF
+                service_times["recovery"] = service_times["recovery"] * HALF
+
+            patient = Patient(self.total_patients, self.env, illness, service_times)
+            self.patients.append(patient)
+            self.total_patients += ONE
+            self.env.process(self.patient_life_time(patient))
