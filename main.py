@@ -1,16 +1,22 @@
-# This is a sample Python script.
+import random
+from Hospital import Hospital
+import simpy
 
-# Press ⌃R to execute it or replace it with your code.
-# Press Double ⇧ to search everywhere for classes, files, tool windows, actions, and settings.
+NUM_PREPARATION_ROOMS = 3
+NUM_RECOVERY_ROOMS = 3
+TIME_INTERARRIVAL = 25
 
+random.seed(33)
+env = simpy.Environment()
+service_time_ranges = {
+    "preparation": (30, 50),
+    "surgery": (15, 30),
+    "recovery": (30, 50)
+}
+runtime = 300
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press ⌘F8 to toggle the breakpoint.
+hospital = Hospital(env, NUM_PREPARATION_ROOMS, NUM_RECOVERY_ROOMS)
+hospital.env.process(hospital.patient_arrival(TIME_INTERARRIVAL, service_time_ranges))
+hospital.run(runtime)
+hospital.results()
 
-
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
