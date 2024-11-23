@@ -51,6 +51,7 @@ class Hospital:
         patient.total_time = self.env.now - arrival_time
         self.total_patient_time += patient.total_time
         self.departed_patients += ONE
+        print(f"{patient.id} has been departed in {patient.total_time} seconds")
 
     def patient_arrival(self, time_between_patients, service_times_ranges):
         while True:
