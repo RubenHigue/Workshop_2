@@ -22,6 +22,7 @@ class Hospital:
         self.blocked_surgeries = 0
         self.departed_patients = 0
         self.total_patient_time = 0
+        self.num_surgeries = 0
 
     def patient_life_time(self, patient):
         arrival_time = self.env.now
@@ -39,6 +40,7 @@ class Hospital:
                 self.blocked_surgeries += ONE
             yield request
             yield self.env.timeout(patient.service_times["surgery"])
+            self.num_surgeries += ONE
 
         patient.status = "Recovery"
         print(f"{patient.id} is {patient.status}")
@@ -91,11 +93,12 @@ class Hospital:
         print(f"Total time of the operation theatre blocked: {self.blocked_surgeries}")
 
         def avg(list):
-            return sum(list) / len(list) if list else 0
+            return sum(list) / len(list) if list else ZERO
 
         print(f"Average queue length:")
         print(f" Preparation: {avg(self.preparationRooms.queue_size):.2f}")
         print(f" Recovery: {avg(self.recoveryRooms.queue_size):.2f}")
         print(f"Average utilization:")
         print(f" Preparation: {avg(self.preparationRooms.utilization) * HUNDRED:.2f}%")
+        print(f" Surgery: {self.num_surgeries/self.total_patients * HUNDRED: .2f}%")
         print(f" Recovery: {avg(self.recoveryRooms.utilization) * HUNDRED:.2f}%")
