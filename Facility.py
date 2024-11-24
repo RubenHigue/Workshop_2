@@ -9,6 +9,7 @@ class Facility:
         self.queue_size = []
         self.utilization = []
 
+    # Method for monitoring the sizes of the priority queue and the utilization of the facilities.
     def monitor(self):
         while True:
             self.queue_size.append(len(self.resource.queue))

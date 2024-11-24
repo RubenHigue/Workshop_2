@@ -24,6 +24,7 @@ class Hospital:
         self.total_patient_time = 0
         self.num_surgeries = 0
 
+    # Patients lifetime cycle, main process for the patients.
     def patient_life_time(self, patient):
         arrival_time = self.env.now
 
@@ -55,6 +56,7 @@ class Hospital:
         self.departed_patients += ONE
         print(f"{patient.id} has been departed in {patient.total_time} seconds")
 
+    # Patient generator, responsible for generating patients.
     def patient_arrival(self, time_between_patients, service_times_ranges):
         while True:
             yield self.env.timeout(random.expovariate(ONE / time_between_patients))
@@ -77,19 +79,23 @@ class Hospital:
             self.total_patients += ONE
             self.env.process(self.patient_life_time(patient))
 
+    # Method for getting the monitored data from the resources.
     def monitor_resources(self):
         self.env.process(self.preparationRooms.monitor())
         self.env.process(self.preparationRooms.monitor())
         self.env.process(self.recoveryRooms.monitor())
 
+    # Method for running the processes.
     def run(self, runtime):
         self.monitor_resources()
         self.env.run(runtime)
 
+    # Method that shows the results of the execution in the terminal.
     def results(self):
         print("SIMULATION RESULTS")
         print(f"Total patients cured: {self.departed_patients}")
-        print(f"Average time for patient to depart the hospital cured: {self.total_patient_time / self.departed_patients:.2f} seconds")
+        print(
+            f"Average time for patient to depart the hospital cured: {self.total_patient_time / self.departed_patients:.2f} seconds")
         print(f"Total time of the operation theatre blocked: {self.blocked_surgeries}")
 
         def avg(list):
@@ -100,5 +106,5 @@ class Hospital:
         print(f" Recovery: {avg(self.recoveryRooms.queue_size):.2f}")
         print(f"Average utilization:")
         print(f" Preparation: {avg(self.preparationRooms.utilization) * HUNDRED:.2f}%")
-        print(f" Surgery: {self.num_surgeries/self.total_patients * HUNDRED: .2f}%")
+        print(f" Surgery: {self.num_surgeries / self.total_patients * HUNDRED: .2f}%")
         print(f" Recovery: {avg(self.recoveryRooms.utilization) * HUNDRED:.2f}%")
