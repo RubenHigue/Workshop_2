@@ -35,7 +35,7 @@ class Hospital:
             yield self.env.timeout(patient.service_times["preparation"])
 
         patient.status = "Surgery"
-        print(f"{patient.id} is {patient.status}")
+        print(f"{patient.id} is in {patient.status}")
         with self.surgery.resource.request(priority=patient.priority) as request:
             if len(self.surgery.resource.queue) > ZERO:
                 self.blocked_surgeries += ONE
@@ -44,7 +44,7 @@ class Hospital:
             self.num_surgeries += ONE
 
         patient.status = "Recovery"
-        print(f"{patient.id} is {patient.status}")
+        print(f"{patient.id} is in {patient.status}")
         with self.recoveryRooms.resource.request(priority=patient.priority) as request:
             yield request
             yield self.env.timeout(patient.service_times["recovery"])
@@ -54,7 +54,7 @@ class Hospital:
         patient.total_time = self.env.now - arrival_time
         self.total_patient_time += patient.total_time
         self.departed_patients += ONE
-        print(f"{patient.id} has been departed in {patient.total_time} seconds")
+        print(f"{patient.id} has been departed in {patient.total_time: .2f} seconds----")
 
     # Patient generator, responsible for generating patients.
     def patient_arrival(self, time_between_patients, service_times_ranges):
@@ -92,7 +92,7 @@ class Hospital:
 
     # Method that shows the results of the execution in the terminal.
     def results(self):
-        print("SIMULATION RESULTS")
+        print("-----SIMULATION RESULTS-----")
         print(f"Total patients cured: {self.departed_patients}")
         print(
             f"Average time for patient to depart the hospital cured: {self.total_patient_time / self.departed_patients:.2f} seconds")
