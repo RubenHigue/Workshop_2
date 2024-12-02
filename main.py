@@ -84,17 +84,25 @@ for config_name, config_results in results.items():
     print("\n")
 
 print("\nPairwise Comparisons:")
-for config1, config2 in [("3p4r", "3p5r"), ("3p5r", "4p5r"), ("3p4r", "4p5r")]:
+for config1, config2 in [("3p4r", "3p5r"), ("3p4r", "4p5r"), ("3p5r", "4p5r")]:
     results1 = [result["avg_preparation_queue"] for result in results[config1]]
     results2 = [result["avg_preparation_queue"] for result in results[config2]]
-    results3 = [result["utilization_surgery"] for result in results[config1]]
-    results4 = [result["utilization_surgery"] for result in results[config2]]
+    results3 = [result["blocking_rate"] for result in results[config1]]
+    results4 = [result["blocking_rate"] for result in results[config2]]
+    results5 = [result["recovery_busy_probability"] for result in results[config1]]
+    results6 = [result["recovery_busy_probability"] for result in results[config2]]
+    results7 = [result["utilization_surgery"] for result in results[config1]]
+    results8 = [result["utilization_surgery"] for result in results[config2]]
 
     ci = compare_pairwise(results1, results2)
     ci2 = compare_pairwise(results3, results4)
+    ci3 = compare_pairwise(results5, results6)
+    ci4 = compare_pairwise(results7, results8)
     print(f"{config1} vs {config2}")
     print(f"Average Preparation queue mean Diff = {ci[0]:.2f}, CI = {ci[0]:.2f} ± {ci[1]:.2f}")
-    print(f"Surgery utilization mean Diff = {ci2[1]:.2f}, CI = {ci2[1]:.2f} ± {ci2[0]:.2f}")
+    print(f"Average blocking rate Diff = {ci2[1]:.2f}, CI = {ci2[1]:.2f} ± {ci2[0]:.2f}")
+    print(f"Average recovery busy probability mean Diff = {ci3[1]:.2f}, CI = {ci3[1]:.2f} ± {ci3[0]:.2f}")
+    print(f"Surgery utilization mean Diff = {ci4[1]:.2f}, CI = {ci4[1]:.2f} ± {ci4[0]:.2f}")
     print("\n")
 
 
