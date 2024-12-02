@@ -9,6 +9,7 @@ ONE = 1
 ZERO = 0
 HALF = 0.5
 HUNDRED = 100
+TEN = 10
 
 
 class Hospital:
@@ -33,26 +34,29 @@ class Hospital:
     def patient_life_time(self, patient):
         arrival_time = self.env.now
 
-        patient.status = "Preparing"
-        print(f"{patient.id} is {patient.status}")
         with self.preparationRooms.resource.request(priority=patient.priority) as request:
             yield request
-            self.preparation_queue_lengths.append(len(self.preparationRooms.resource.queue))
+            patient.status = "Preparing"
+            print(f"{patient.id} is {patient.status}")
             yield self.env.timeout(patient.service_times["preparation"])
 
-        patient.status = "Surgery"
-        print(f"{patient.id} is in {patient.status}")
         with self.surgery.resource.request(priority=patient.priority) as request:
             if len(self.surgery.resource.queue) > ZERO:
                 self.blocked_surgeries += ONE
             yield request
+            patient.status = "Surgery"
+            print(f"{patient.id} is in {patient.status}")
             yield self.env.timeout(patient.service_times["surgery"])
             self.num_surgeries += ONE
 
-        patient.status = "Recovery"
-        print(f"{patient.id} is in {patient.status}")
+            while self.recoveryRooms.resource.count == self.recoveryRooms.resource.capacity:
+                yield self.env.timeout(ONE)
+                print(f"{patient.id} is waiting for recovery room availability")
+
         with self.recoveryRooms.resource.request(priority=patient.priority) as request:
             yield request
+            patient.status = "Recovery"
+            print(f"{patient.id} is in {patient.status}")
             yield self.env.timeout(patient.service_times["recovery"])
 
         patient.status = "Departed"
@@ -60,7 +64,7 @@ class Hospital:
         patient.total_time = self.env.now - arrival_time
         self.total_patient_time += patient.total_time
         self.departed_patients += ONE
-        print(f"{patient.id} has been departed in {patient.total_time: .2f} seconds----")
+        print(f"{patient.id} has been departed in {patient.total_time:.2f} seconds----")
 
     # Patient generator, responsible for generating patients.
     def patient_arrival(self, time_between_patients, service_times_ranges):
@@ -95,22 +99,24 @@ class Hospital:
     def monitor_system(self, sampling_interval):
         while True:
             self.preparation_queue_lengths.append(len(self.preparationRooms.resource.queue))
-            recovery_busy = len(self.recoveryRooms.resource.users) == self.recoveryRooms.resource.capacity
-            self.recovery_room_busy_probabilities.append(ONE if recovery_busy else ZERO)
+            if self.recoveryRooms.resource.count == self.recoveryRooms.resource.capacity:
+                self.recovery_room_busy_probabilities.append(ONE)
+            else:
+                self.recovery_room_busy_probabilities.append(ZERO)
             yield self.env.timeout(sampling_interval)
 
     # Calculates results from the simulation.
     def get_results(self):
         avg_preparation_queue = sum(self.preparation_queue_lengths) / max(len(self.preparation_queue_lengths), ONE)
-        blocking_rate = self.blocked_surgeries / max(self.num_surgeries, ONE)
+        blocking_rate = self.blocked_surgeries / max(self.num_surgeries+self.blocked_surgeries, ONE)
         recovery_busy_probability = (sum(self.recovery_room_busy_probabilities) /
-                                     max(len(self.recovery_room_busy_probabilities), ONE))
+                                     max(len(self.recovery_room_busy_probabilities), ONE)) * HUNDRED
 
         return {
             "avg_preparation_queue": avg_preparation_queue,
             "blocking_rate": blocking_rate,
             "recovery_busy_probability": recovery_busy_probability,
-            "utilization_surgery": (self.num_surgeries / self.total_patients)*HUNDRED
+            "utilization_surgery": (self.num_surgeries / self.total_patients) * HUNDRED
         }
 
     # Runs the hospital simulation.
