@@ -24,6 +24,11 @@ class Hospital:
         self.total_patient_time = 0
         self.num_surgeries = 0
 
+        # Monitoring variables
+        self.preparation_queue_lengths = []
+        self.blocking_probabilities = []
+        self.recovery_room_busy_probabilities = []
+
     # Patients lifetime cycle, main process for the patients.
     def patient_life_time(self, patient):
         arrival_time = self.env.now
@@ -32,6 +37,7 @@ class Hospital:
         print(f"{patient.id} is {patient.status}")
         with self.preparationRooms.resource.request(priority=patient.priority) as request:
             yield request
+            self.preparation_queue_lengths.append(len(self.preparationRooms.resource.queue))
             yield self.env.timeout(patient.service_times["preparation"])
 
         patient.status = "Surgery"
@@ -79,32 +85,35 @@ class Hospital:
             self.total_patients += ONE
             self.env.process(self.patient_life_time(patient))
 
-    # Method for getting the monitored data from the resources.
-    def monitor_resources(self):
-        self.env.process(self.preparationRooms.monitor())
-        self.env.process(self.preparationRooms.monitor())
-        self.env.process(self.recoveryRooms.monitor())
+    # Method that clears monitoring data after warm-up.
+    def reset_monitoring(self):
+        self.preparation_queue_lengths.clear()
+        self.blocking_probabilities.clear()
+        self.recovery_room_busy_probabilities.clear()
 
-    # Method for running the processes.
+    # Monitors the system at regular intervals.
+    def monitor_system(self, sampling_interval):
+        while True:
+            self.preparation_queue_lengths.append(len(self.preparationRooms.resource.queue))
+            recovery_busy = len(self.recoveryRooms.resource.users) == self.recoveryRooms.resource.capacity
+            self.recovery_room_busy_probabilities.append(ONE if recovery_busy else ZERO)
+            yield self.env.timeout(sampling_interval)
+
+    # Calculates results from the simulation.
+    def get_results(self):
+        avg_preparation_queue = sum(self.preparation_queue_lengths) / max(len(self.preparation_queue_lengths), ONE)
+        blocking_rate = self.blocked_surgeries / max(self.num_surgeries, ONE)
+        recovery_busy_probability = (sum(self.recovery_room_busy_probabilities) /
+                                     max(len(self.recovery_room_busy_probabilities), ONE))
+
+        return {
+            "avg_preparation_queue": avg_preparation_queue,
+            "blocking_rate": blocking_rate,
+            "recovery_busy_probability": recovery_busy_probability,
+            "utilization_surgery": (self.num_surgeries / self.total_patients)*HUNDRED
+        }
+
+    # Runs the hospital simulation.
     def run(self, runtime):
-        self.monitor_resources()
-        self.env.run(runtime)
-
-    # Method that shows the results of the execution in the terminal.
-    def results(self):
-        print("-----SIMULATION RESULTS-----")
-        print(f"Total patients cured: {self.departed_patients}")
-        print(
-            f"Average time for patient to depart the hospital cured: {self.total_patient_time / self.departed_patients:.2f} seconds")
-        print(f"Total time of the operation theatre blocked: {self.blocked_surgeries}")
-
-        def avg(list):
-            return sum(list) / len(list) if list else ZERO
-
-        print(f"Average queue length:")
-        print(f" Preparation: {avg(self.preparationRooms.queue_size):.2f}")
-        print(f" Recovery: {avg(self.recoveryRooms.queue_size):.2f}")
-        print(f"Average utilization:")
-        print(f" Preparation: {avg(self.preparationRooms.utilization) * HUNDRED:.2f}%")
-        print(f" Surgery: {self.num_surgeries / self.total_patients * HUNDRED: .2f}%")
-        print(f" Recovery: {avg(self.recoveryRooms.utilization) * HUNDRED:.2f}%")
+        self.env.process(self.monitor_system(ONE))
+        self.env.run(until=runtime)
