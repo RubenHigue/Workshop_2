@@ -94,6 +94,7 @@ def run_experiment():
 
     for i, config in enumerate(design):
         config_name = f"Config_{i + 1}"
+        print(f"Running {config_name} with configuration: {config}")  # Add this line to show which config is being run
         results[config_name] = []
 
         for sample in range(NUM_SAMPLES):
