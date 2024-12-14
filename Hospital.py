@@ -67,26 +67,27 @@ class Hospital:
         print(f"{patient.id} has been departed in {patient.total_time:.2f} seconds----")
 
     # Patient generator, responsible for generating patients.
-    def patient_arrival(self, time_between_patients, service_times_ranges):
+    def patient_arrival(self, interarrival_dist, service_times_ranges):
         while True:
-            yield self.env.timeout(random.expovariate(ONE / time_between_patients))
+            time_between_arrivals = interarrival_dist()
+            yield self.env.timeout(time_between_arrivals)
 
             illness = random.choice(["normal", "dangereous"])
 
             service_times = {
-                "preparation": random.uniform(*service_times_ranges["preparation"]),
-                "surgery": random.uniform(*service_times_ranges["surgery"]),
-                "recovery": random.uniform(*service_times_ranges["recovery"])
+                "preparation": service_times_ranges["preparation"](),
+                "surgery": service_times_ranges["surgery"](),
+                "recovery": service_times_ranges["recovery"](),
             }
 
             if illness == "normal":
-                service_times["preparation"] = service_times["preparation"] * HALF
-                service_times["surgery"] = service_times["surgery"] * HALF
-                service_times["recovery"] = service_times["recovery"] * HALF
+                service_times["preparation"] *= HALF
+                service_times["surgery"] *= HALF
+                service_times["recovery"] *= HALF
 
             patient = Patient(self.total_patients, self.env, illness, service_times)
             self.patients.append(patient)
-            self.total_patients += ONE
+            self.total_patients += 1
             self.env.process(self.patient_life_time(patient))
 
     # Method that clears monitoring data after warm-up.
