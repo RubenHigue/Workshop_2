@@ -105,74 +105,43 @@ def run_experiment():
 
 
 # Analyze results and build regression model
+def calculate_regression_for_config(config_results, metric):
+    avg_metric = np.mean([r[metric] for r in config_results])
+    x_values = range(len(config_results))
+    y_values = [r[metric] for r in config_results]
+
+    slope, intercept, r_value, p_value, std_err = linregress(x_values, y_values)
+    print(f"Regression model for {metric}:")
+    print(f"Slope: {slope:.4f}, Intercept: {intercept:.4f}, R-squared: {r_value ** 2:.4f}")
+    return avg_metric, slope, intercept, r_value ** 2, p_value, std_err
+
+
+# Function to get the Global Regresion
 def analyze_results(results):
-    avg_queue_lengths = []
-    blocking_rates = []
-    recovery_busy_probabilities = []
-    utilization_surgeries = []
-    config_names = []
+    metrics = ['avg_preparation_queue', 'blocking_rate', 'recovery_busy_probability', 'utilization_surgery']
 
-    # Recorrer los resultados de la simulación
-    for config_name, config_results in results.items():
-        avg_queue_length = np.mean([r["avg_preparation_queue"] for r in config_results])
-        blocking_rate = np.mean([r["blocking_rate"] for r in config_results])
-        recovery_busy_probability = np.mean([r["recovery_busy_probability"] for r in config_results])
-        utilization_surgery = np.mean([r["utilization_surgery"] for r in config_results])
+    for metric in metrics:
+        print(f"\n\nPerforming regression for {metric}:")
+        for config_name, config_results in results.items():
+            print(f"\n{config_name}:")
+            avg_metric, slope, intercept, r_squared, p_value, std_err = calculate_regression_for_config(config_results,
+                                                                                                        metric)
+            print(f"Avg {metric}: {avg_metric:.2f}")
+            print(f"R-squared for {config_name} ({metric}): {r_squared:.4f}")
+            print(f"P-value: {p_value:.4f}\n")
 
-        avg_queue_lengths.append(avg_queue_length)
-        blocking_rates.append(blocking_rate)
-        recovery_busy_probabilities.append(recovery_busy_probability)
-        utilization_surgeries.append(utilization_surgery)
-        config_names.append(config_name)
+    print("\n\nGlobal regression:")
+    for metric in metrics:
+        avg_metric_values = []
+        for config_name, config_results in results.items():
+            avg_metric_values.append(np.mean([r[metric] for r in config_results]))
 
-    # Imprimir modelo de regresión para la longitud de la cola de preparación
-    slope, intercept, r_value, p_value, std_err = linregress(range(len(avg_queue_lengths)), avg_queue_lengths)
-    print("Regression model (Avg Queue Length):")
-    print(f"Slope: {slope:.4f}, Intercept: {intercept:.4f}, R-squared: {r_value ** 2:.4f}")
-
-    # Imprimir modelo de regresión para el blocking_rate
-    slope, intercept, r_value, p_value, std_err = linregress(range(len(blocking_rates)), blocking_rates)
-    print("Regression model (Blocking Rate):")
-    print(f"Slope: {slope:.4f}, Intercept: {intercept:.4f}, R-squared: {r_value ** 2:.4f}")
-
-    # Imprimir modelo de regresión para la probabilidad de ocupación de la sala de recuperación
-    slope, intercept, r_value, p_value, std_err = linregress(range(len(recovery_busy_probabilities)), recovery_busy_probabilities)
-    print("Regression model (Recovery Room Busy Probability):")
-    print(f"Slope: {slope:.4f}, Intercept: {intercept:.4f}, R-squared: {r_value ** 2:.4f}")
-
-    # Imprimir modelo de regresión para la utilización de la sala de operaciones
-    slope, intercept, r_value, p_value, std_err = linregress(range(len(utilization_surgeries)), utilization_surgeries)
-    print("Regression model (Surgery Room Utilization):")
-    print(f"Slope: {slope:.4f}, Intercept: {intercept:.4f}, R-squared: {r_value ** 2:.4f}")
-
-    # Retornar todas las métricas
-    return {
-        "avg_queue_lengths": avg_queue_lengths,
-        "blocking_rates": blocking_rates,
-        "recovery_busy_probabilities": recovery_busy_probabilities,
-        "utilization_surgeries": utilization_surgeries,
-        "config_names": config_names
-    }
-
+        slope, intercept, r_value, p_value, std_err = linregress(range(len(avg_metric_values)), avg_metric_values)
+        print(f"\nGlobal regression for {metric}:")
+        print(f"Slope: {slope:.4f}, Intercept: {intercept:.4f}, R-squared: {r_value ** 2:.4f}")
+        print(f"P-value: {p_value:.4f}\n")
 
 
 if __name__ == "__main__":
-    # Ejecutar el experimento
     experiment_results = run_experiment()
-
-    # Analizar los resultados obtenidos
-    analysis_results = analyze_results(experiment_results)
-
-    # Imprimir los resultados de cada configuración
-    for config_name, avg_queue_length, blocking_rate, recovery_busy_prob, utilization_surgery in zip(
-        analysis_results["config_names"],
-        analysis_results["avg_queue_lengths"],
-        analysis_results["blocking_rates"],
-        analysis_results["recovery_busy_probabilities"],
-        analysis_results["utilization_surgeries"]
-    ):
-        print(f"{config_name}:")
-        print(f"  Avg Preparation Queue Length = {avg_queue_length:.2f}")
-        print(f"  Blocking Rate = {blocking_rate:.2f}")
-        print(f"  Recovery Room Busy Probability = {recovery_busy_prob:.2f}%")
-        print(f"  Surgery Room Utilization = {utilization_surgery:.2f}%")
+    analyze_results(experiment_results)
